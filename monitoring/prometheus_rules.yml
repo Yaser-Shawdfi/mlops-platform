@@ -1,0 +1,38 @@
+groups:
+  - name: mlops_alerts
+    rules:
+      - alert: ModelDriftDetected
+        expr: mlops_drift_detected_total > 0
+        for: 1m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Data drift detected for model {{ $labels.model_name }}"
+          description: "PSI exceeded threshold. Consider retraining."
+
+      - alert: ModelPerformanceDegraded
+        expr: mlops_model_auc < 0.7
+        for: 5m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Model AUC below 0.7 for {{ $labels.model_name }}"
+          description: "Model performance has degraded below acceptable threshold."
+
+      - alert: PredictionLatencyHigh
+        expr: histogram_quantile(0.95, rate(mlops_prediction_latency_seconds_bucket[5m])) > 1
+        for: 2m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Prediction latency P95 > 1s for {{ $labels.model_name }}"
+          description: "Model serving latency is too high."
+
+      - alert: RetrainPipelineFailures
+        expr: increase(mlops_retrain_total{status="failed"}[1h]) > 3
+        for: 1m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Retraining pipeline failing repeatedly for {{ $labels.model_name }}"
+          description: "Multiple retraining failures in the last hour."
