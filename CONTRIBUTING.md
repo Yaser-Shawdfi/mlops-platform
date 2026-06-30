@@ -49,6 +49,29 @@ make format
 make format-check
 ```
 
+### Pre-commit Hooks
+
+```bash
+# Install pre-commit
+pip install pre-commit
+
+# Install hooks
+pre-commit install
+
+# Run manually on all files
+pre-commit run --all-files
+```
+
+Hooks run automatically on `git commit` and enforce:
+- Ruff lint + auto-fix
+- Ruff format
+- Trailing whitespace removal
+- End-of-file fixer
+- YAML/TOML validation
+- Large file detection (500KB limit)
+- Merge conflict detection
+- Debug statement detection
+
 ## Running the Demo
 
 ```bash

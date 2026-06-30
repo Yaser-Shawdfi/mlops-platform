@@ -4,11 +4,6 @@ Validates test creation, routing, result recording, and statistical evaluation.
 """
 
 import numpy as np
-import sys
-import os
-
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
-
 from src.ab_testing.ab_test_manager import ABTestManager
 from src.config import settings
 

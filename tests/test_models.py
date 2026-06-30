@@ -3,11 +3,6 @@ Test Model Wrappers
 Validates synthetic data generation and model training.
 """
 
-import sys
-import os
-
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
-
 from src.models.model_wrappers import (
     generate_readmission_data,
     generate_credit_data,

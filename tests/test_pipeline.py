@@ -3,10 +3,8 @@ Test Pipeline Orchestration
 Validates retraining trigger logic and pipeline execution.
 """
 
-import sys
 import os
 
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 
 from src.pipeline.retrain_pipeline import RetrainTrigger
 from src.models.model_wrappers import generate_readmission_data, train_readmission_model
@@ -72,7 +70,7 @@ class TestPipelineExecution:
             train_fn=train_readmission_model,
             reference_data=ref_data,
             current_data=cur_data,
-            baseline_performance={"auc": 0.5},  # Low baseline to force retrain
+            baseline_performance={"auc": 0.5},
             model_type="xgboost",
             auto_deploy=False,
         )

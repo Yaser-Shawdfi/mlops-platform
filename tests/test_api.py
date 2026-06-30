@@ -4,11 +4,6 @@ Integration tests for FastAPI serving using TestClient.
 Validates all endpoints: /health, /predict, /models, /drift/detect, /versions, /transition.
 """
 
-import os
-import sys
-
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
-
 from fastapi.testclient import TestClient
 from src.serving.api import app
 

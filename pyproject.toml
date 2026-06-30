@@ -1,0 +1,38 @@
+[project]
+name = "mlops-platform"
+version = "1.0.0"
+description = "Enterprise ML Lifecycle Management - MLflow registry, drift detection, automated retraining, A/B testing, Prometheus monitoring, Grafana dashboards"
+readme = "README.md"
+license = { text = "MIT" }
+requires-python = ">=3.10"
+authors = [{ name = "Yaser Shawdfi" }]
+keywords = ["mlops", "mlflow", "drift-detection", "model-registry", "ab-testing", "monitoring"]
+
+[project.urls]
+Repository = "https://github.com/Yaser-Shawdfi/mlops-platform"
+
+[tool.ruff]
+target-version = "py311"
+line-length = 120
+
+[tool.ruff.lint.per-file-ignores]
+"scripts/demo.py" = ["E402"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+python_files = ["test_*.py"]
+python_classes = ["Test*"]
+python_functions = ["test_*"]
+filterwarnings = [
+    "ignore::DeprecationWarning",
+    "ignore::FutureWarning",
+    "ignore::PendingDeprecationWarning",
+]
+
+[tool.coverage.run]
+source = ["src"]
+omit = ["*/__init__.py", "*/config.py"]
+
+[tool.coverage.report]
+show_missing = true
+precision = 2
