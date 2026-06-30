@@ -4,48 +4,21 @@ A production-grade MLOps platform that manages the full machine learning lifecyc
 
 ## Architecture
 
+A full interactive dark-themed architecture diagram is available at [`docs/architecture.html`](docs/architecture.html). Open it in any browser to view the system topology with color-coded component types, data flow arrows, and a legend.
+
+**Simplified flow:**
+
 ```
-                    +-------------------+
-                    |   Data Sources     |
-                    |  (Reference + Live)|
-                    +---------+---------+
-                              |
-                    +---------v---------+
-                    |  Drift Detector     |
-                    |  (PSI / KS Test)   |
-                    +---------+---------+
-                              |
-                    +---------v---------+
-                    |  Retrain Trigger   |
-                    |  (Decision Engine) |
-                    +---------+---------+
-                              |
-              +---------------+---------------+
-              |                               |
-    +---------v---------+           +---------v---------+
-    |  Retrain Pipeline |           |  Alert Manager    |
-    |  (Prefect)        |           |  (Slack/Email)    |
-    +---------+---------+           +-------------------+
-              |
-    +---------v---------+
-    |  MLflow Registry   |
-    |  (Version + Stage) |
-    +---------+---------+
-              |
-    +---------v---------+
-    |  FastAPI Serving   |
-    |  (/predict)       |
-    +---------+---------+
-              |
-    +---------v---------+
-    |  Prometheus +     |
-    |  Grafana Dashboard|
-    +-------------------+
-              |
-    +---------v---------+
-    |  A/B Test Manager  |
-    |  (Z-test, KS)     |
-    +-------------------+
+Data Sources -> Drift Detector (PSI/KS) -> Retrain Trigger -> MLflow Registry
+                                                       |              |
+                                                       v              v
+                                                 Retrain Pipeline  FastAPI Serving
+                                                       |              |
+                                                       v              v
+                                                 Alert Manager <- Prometheus -> Grafana
+                                                                       |
+                                                                       v
+                                                                 A/B Test Manager
 ```
 
 ## Project Structure
