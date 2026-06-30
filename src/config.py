@@ -3,7 +3,7 @@ MLOps Platform - Configuration
 Centralized configuration using Pydantic Settings.
 """
 
-from pydantic_settings import BaseSettings
+from pydantic_settings import BaseSettings, SettingsConfigDict
 from pydantic import Field
 from pathlib import Path
 
@@ -52,9 +52,7 @@ class Settings(BaseSettings):
     reports_dir: Path = base_dir / "data" / "reports"
     artifacts_dir: Path = base_dir / "data" / "artifacts"
 
-    class Config:
-        env_file = ".env"
-        env_prefix = "MLOPS_"
+    model_config = SettingsConfigDict(env_file=".env", env_prefix="MLOPS_")
 
 
 settings = Settings()

@@ -115,13 +115,13 @@ def train_readmission_model(train_data: pd.DataFrame, val_data: pd.DataFrame) ->
                  "num_procedures", "num_admissions_prev_year", "num_emergency_visits",
                  "diabetes", "hypertension", "heart_failure"]
 
-    # Encode categorical
-    encoders = {}
+    # Encode categorical (use .copy() to avoid SettingWithCopyWarning)
+    train_data = train_data.copy()
+    val_data = val_data.copy()
     for col in categorical:
         le = LabelEncoder()
         train_data[col] = le.fit_transform(train_data[col].astype(str))
         val_data[col] = le.transform(val_data[col].astype(str))
-        encoders[col] = le
 
     features = numerical + categorical
     X_train = train_data[features].values
@@ -166,13 +166,13 @@ def train_credit_model(train_data: pd.DataFrame, val_data: pd.DataFrame) -> Tupl
     numerical = ["age", "income", "loan_amount", "credit_score", "debt_to_income",
                  "num_credit_lines", "num_late_payments", "num_derogatory", "employment_years"]
 
-    # Encode categorical
-    encoders = {}
+    # Encode categorical (use .copy() to avoid SettingWithCopyWarning)
+    train_data = train_data.copy()
+    val_data = val_data.copy()
     for col in categorical:
         le = LabelEncoder()
         train_data[col] = le.fit_transform(train_data[col].astype(str))
         val_data[col] = le.transform(val_data[col].astype(str))
-        encoders[col] = le
 
     features = numerical + categorical
     X_train = train_data[features].values

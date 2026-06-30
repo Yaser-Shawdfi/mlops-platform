@@ -119,13 +119,12 @@ class ModelRegistry:
         result = mlflow.register_model(model_uri, model_name)
         version = result.version
 
-        # Transition to stage
+        # Transition to stage (use aliases for MLflow 3.x compatibility)
         if stage:
-            self.client.transition_model_version_stage(
+            self.client.set_model_version_alias(
                 name=model_name,
                 version=version,
-                stage=stage,
-                archive_existing_versions=True,
+                alias=stage,
             )
 
         # Update description with metrics
@@ -150,17 +149,32 @@ class ModelRegistry:
 
     def get_latest_model(self, model_name: str, stage: str = "Production") -> dict:
         """
-        Get the latest model version for a given stage.
+        Get the latest model version for a given stage/alias.
 
         Returns:
             Dict with model_uri, version, run_id, metrics
         """
-        versions = self.client.get_latest_versions(model_name, stages=[stage])
-        if not versions:
-            logger.warning(f"No model '{model_name}' found in stage '{stage}'")
-            return None
-
-        latest = versions[0]
+        # Use alias-based lookup (MLflow 3.x)
+        try:
+            versions = self.client.search_model_versions(f"name='{model_name}'")
+            latest = None
+            for v in versions:
+                if v.aliases and stage in v.aliases:
+                    latest = v
+                    break
+            if latest is None:
+                # Fallback: try stage-based lookup for older MLflow
+                versions = self.client.get_latest_versions(model_name, stages=[stage])
+                if not versions:
+                    logger.warning(f"No model '{model_name}' found with alias/stage '{stage}'")
+                    return None
+                latest = versions[0]
+        except Exception:
+            versions = self.client.get_latest_versions(model_name, stages=[stage])
+            if not versions:
+                logger.warning(f"No model '{model_name}' found in stage '{stage}'")
+                return None
+            latest = versions[0]
         run = self.client.get_run(latest.run_id)
 
         return {
@@ -183,7 +197,8 @@ class ModelRegistry:
                 rows.append({
                     "model_name": m.name,
                     "version": v.version,
-                    "stage": v.current_stage,
+                    "aliases": list(v.aliases) if hasattr(v, "aliases") and v.aliases else [],
+                    "stage": v.current_stage if hasattr(v, "current_stage") else "",
                     "run_id": v.run_id,
                     "created_at": datetime.fromtimestamp(v.creation_timestamp / 1000).isoformat(),
                 })
@@ -212,12 +227,11 @@ class ModelRegistry:
         return comparison
 
     def transition_stage(self, model_name: str, version: int, stage: str) -> dict:
-        """Transition a model version to a new stage."""
-        self.client.transition_model_version_stage(
+        """Transition a model version to a new stage (via alias in MLflow 3.x)."""
+        self.client.set_model_version_alias(
             name=model_name,
             version=str(version),
-            stage=stage,
-            archive_existing_versions=True,
+            alias=stage,
         )
         logger.info(f"Transitioned {model_name} v{version} -> {stage}")
         return {"model_name": model_name, "version": version, "new_stage": stage}
