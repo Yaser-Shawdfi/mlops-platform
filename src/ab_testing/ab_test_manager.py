@@ -5,13 +5,11 @@ Routes traffic, collects outcomes, and evaluates significance.
 """
 
 import numpy as np
-import pandas as pd
 from datetime import datetime
-from typing import Optional, Dict, List, Tuple
+from typing import Dict, List
 from loguru import logger
 from scipy import stats
 import json
-from pathlib import Path
 
 from src.config import settings
 
@@ -100,7 +98,12 @@ class ABTestManager:
         with open(test_path, "w") as f:
             json.dump(test, f, indent=2, default=str)
 
-        return {"recorded": True, "version": version, "total_a": len(test["results_a"]), "total_b": len(test["results_b"])}
+        return {
+            "recorded": True,
+            "version": version,
+            "total_a": len(test["results_a"]),
+            "total_b": len(test["results_b"]),
+        }
 
     def evaluate_test(self, test_name: str) -> Dict:
         """
@@ -150,7 +153,7 @@ class ABTestManager:
             p1 = acc_a
             p2 = acc_b
             p_pool = (p1 * n_a + p2 * n_b) / (n_a + n_b)
-            se = np.sqrt(p_pool * (1 - p_pool) * (1/n_a + 1/n_b))
+            se = np.sqrt(p_pool * (1 - p_pool) * (1 / n_a + 1 / n_b))
 
             if se > 0:
                 z_stat = (p2 - p1) / se
@@ -229,16 +232,18 @@ class ABTestManager:
         for path in sorted(self.tests_dir.glob("*_config.json")):
             with open(path) as f:
                 test = json.load(f)
-                tests.append({
-                    "test_name": test["test_name"],
-                    "model_name": test["model_name"],
-                    "version_a": test["version_a"],
-                    "version_b": test["version_b"],
-                    "status": test["status"],
-                    "sample_a": len(test["results_a"]),
-                    "sample_b": len(test["results_b"]),
-                    "created_at": test["created_at"],
-                })
+                tests.append(
+                    {
+                        "test_name": test["test_name"],
+                        "model_name": test["model_name"],
+                        "version_a": test["version_a"],
+                        "version_b": test["version_b"],
+                        "status": test["status"],
+                        "sample_a": len(test["results_a"]),
+                        "sample_b": len(test["results_b"]),
+                        "created_at": test["created_at"],
+                    }
+                )
         return tests
 
     def stop_test(self, test_name: str) -> Dict:

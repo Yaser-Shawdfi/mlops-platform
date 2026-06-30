@@ -3,12 +3,9 @@ Test A/B Testing Framework
 Validates test creation, routing, result recording, and statistical evaluation.
 """
 
-import pytest
 import numpy as np
-import json
 import sys
 import os
-from pathlib import Path
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 

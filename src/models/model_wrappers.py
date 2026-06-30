@@ -6,18 +6,18 @@ Provides a unified interface for training, prediction, and evaluation.
 
 import pandas as pd
 import numpy as np
-from sklearn.model_selection import train_test_split
 from sklearn.metrics import accuracy_score, roc_auc_score, precision_score, recall_score, f1_score
-from sklearn.ensemble import GradientBoostingClassifier
 from sklearn.preprocessing import LabelEncoder
 from xgboost import XGBClassifier
 from loguru import logger
-from typing import Tuple, Dict, Callable
+from typing import Tuple, Dict
 import warnings
+
 warnings.filterwarnings("ignore")
 
 
 # --- Synthetic Data Generators ---
+
 
 def generate_readmission_data(n_samples: int = 5000, drift: bool = False) -> pd.DataFrame:
     """
@@ -26,20 +26,22 @@ def generate_readmission_data(n_samples: int = 5000, drift: bool = False) -> pd.
     """
     np.random.seed(42 if not drift else 99)
 
-    data = pd.DataFrame({
-        "age": np.random.normal(65 if not drift else 55, 12, n_samples).clip(18, 100),
-        "length_of_stay": np.random.exponential(5, n_samples).clip(1, 30),
-        "num_diagnoses": np.random.poisson(5, n_samples).clip(1, 20),
-        "num_medications": np.random.poisson(8, n_samples).clip(1, 30),
-        "num_procedures": np.random.poisson(2, n_samples).clip(0, 10),
-        "num_admissions_prev_year": np.random.poisson(1, n_samples).clip(0, 10),
-        "num_emergency_visits": np.random.poisson(1, n_samples).clip(0, 10),
-        "discharge_disposition": np.random.choice(["home", "snf", "home_health", "rehab"], n_samples),
-        "admission_source": np.random.choice(["emergency", "referral", "transfer", "elective"], n_samples),
-        "diabetes": np.random.binomial(1, 0.3, n_samples),
-        "hypertension": np.random.binomial(1, 0.4, n_samples),
-        "heart_failure": np.random.binomial(1, 0.2, n_samples),
-    })
+    data = pd.DataFrame(
+        {
+            "age": np.random.normal(65 if not drift else 55, 12, n_samples).clip(18, 100),
+            "length_of_stay": np.random.exponential(5, n_samples).clip(1, 30),
+            "num_diagnoses": np.random.poisson(5, n_samples).clip(1, 20),
+            "num_medications": np.random.poisson(8, n_samples).clip(1, 30),
+            "num_procedures": np.random.poisson(2, n_samples).clip(0, 10),
+            "num_admissions_prev_year": np.random.poisson(1, n_samples).clip(0, 10),
+            "num_emergency_visits": np.random.poisson(1, n_samples).clip(0, 10),
+            "discharge_disposition": np.random.choice(["home", "snf", "home_health", "rehab"], n_samples),
+            "admission_source": np.random.choice(["emergency", "referral", "transfer", "elective"], n_samples),
+            "diabetes": np.random.binomial(1, 0.3, n_samples),
+            "hypertension": np.random.binomial(1, 0.4, n_samples),
+            "heart_failure": np.random.binomial(1, 0.2, n_samples),
+        }
+    )
 
     # Target: probability of readmission within 30 days
     risk = (
@@ -70,19 +72,23 @@ def generate_credit_data(n_samples: int = 5000, drift: bool = False) -> pd.DataF
     """
     np.random.seed(42 if not drift else 99)
 
-    data = pd.DataFrame({
-        "age": np.random.normal(40 if not drift else 50, 12, n_samples).clip(18, 90),
-        "income": np.random.lognormal(10.5, 0.5, n_samples).clip(1000, 500000),
-        "loan_amount": np.random.lognormal(10, 0.7, n_samples).clip(500, 200000),
-        "credit_score": np.random.normal(650 if not drift else 580, 80, n_samples).clip(300, 850),
-        "debt_to_income": np.random.beta(2, 5, n_samples),
-        "num_credit_lines": np.random.poisson(5, n_samples).clip(0, 30),
-        "num_late_payments": np.random.poisson(1, n_samples).clip(0, 20),
-        "num_derogatory": np.random.poisson(0.3, n_samples).clip(0, 10),
-        "employment_years": np.random.exponential(5, n_samples).clip(0, 40),
-        "home_ownership": np.random.choice(["rent", "own", "mortgage"], n_samples),
-        "loan_purpose": np.random.choice(["debt_consolidation", "home_improvement", "major_purchase", "other"], n_samples),
-    })
+    data = pd.DataFrame(
+        {
+            "age": np.random.normal(40 if not drift else 50, 12, n_samples).clip(18, 90),
+            "income": np.random.lognormal(10.5, 0.5, n_samples).clip(1000, 500000),
+            "loan_amount": np.random.lognormal(10, 0.7, n_samples).clip(500, 200000),
+            "credit_score": np.random.normal(650 if not drift else 580, 80, n_samples).clip(300, 850),
+            "debt_to_income": np.random.beta(2, 5, n_samples),
+            "num_credit_lines": np.random.poisson(5, n_samples).clip(0, 30),
+            "num_late_payments": np.random.poisson(1, n_samples).clip(0, 20),
+            "num_derogatory": np.random.poisson(0.3, n_samples).clip(0, 10),
+            "employment_years": np.random.exponential(5, n_samples).clip(0, 40),
+            "home_ownership": np.random.choice(["rent", "own", "mortgage"], n_samples),
+            "loan_purpose": np.random.choice(
+                ["debt_consolidation", "home_improvement", "major_purchase", "other"], n_samples
+            ),
+        }
+    )
 
     # Target: probability of default
     risk = (
@@ -104,6 +110,7 @@ def generate_credit_data(n_samples: int = 5000, drift: bool = False) -> pd.DataF
 
 # --- Training Functions ---
 
+
 def train_readmission_model(train_data: pd.DataFrame, val_data: pd.DataFrame) -> Tuple[object, Dict, Dict]:
     """
     Train XGBoost readmission model.
@@ -111,9 +118,18 @@ def train_readmission_model(train_data: pd.DataFrame, val_data: pd.DataFrame) ->
     """
     # Preprocess
     categorical = ["discharge_disposition", "admission_source"]
-    numerical = ["age", "length_of_stay", "num_diagnoses", "num_medications",
-                 "num_procedures", "num_admissions_prev_year", "num_emergency_visits",
-                 "diabetes", "hypertension", "heart_failure"]
+    numerical = [
+        "age",
+        "length_of_stay",
+        "num_diagnoses",
+        "num_medications",
+        "num_procedures",
+        "num_admissions_prev_year",
+        "num_emergency_visits",
+        "diabetes",
+        "hypertension",
+        "heart_failure",
+    ]
 
     # Encode categorical (use .copy() to avoid SettingWithCopyWarning)
     train_data = train_data.copy()
@@ -163,8 +179,17 @@ def train_credit_model(train_data: pd.DataFrame, val_data: pd.DataFrame) -> Tupl
     Returns (model, metrics, params).
     """
     categorical = ["home_ownership", "loan_purpose"]
-    numerical = ["age", "income", "loan_amount", "credit_score", "debt_to_income",
-                 "num_credit_lines", "num_late_payments", "num_derogatory", "employment_years"]
+    numerical = [
+        "age",
+        "income",
+        "loan_amount",
+        "credit_score",
+        "debt_to_income",
+        "num_credit_lines",
+        "num_late_payments",
+        "num_derogatory",
+        "employment_years",
+    ]
 
     # Encode categorical (use .copy() to avoid SettingWithCopyWarning)
     train_data = train_data.copy()

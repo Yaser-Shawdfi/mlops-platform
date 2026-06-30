@@ -3,9 +3,6 @@ Test Model Wrappers
 Validates synthetic data generation and model training.
 """
 
-import pytest
-import numpy as np
-import pandas as pd
 import sys
 import os
 

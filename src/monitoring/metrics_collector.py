@@ -8,7 +8,6 @@ from datetime import datetime
 from typing import Dict
 from loguru import logger
 import json
-from pathlib import Path
 
 from src.config import settings
 

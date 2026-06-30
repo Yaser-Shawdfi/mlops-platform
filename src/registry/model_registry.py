@@ -10,14 +10,10 @@ import mlflow.sklearn
 import mlflow.xgboost
 import mlflow.lightgbm
 from mlflow.tracking import MlflowClient
-from mlflow.entities import ViewType
 from datetime import datetime
-from typing import Optional
 from loguru import logger
 from pathlib import Path
 import pandas as pd
-import json
-import pickle
 
 from src.config import settings
 
@@ -119,13 +115,21 @@ class ModelRegistry:
         result = mlflow.register_model(model_uri, model_name)
         version = result.version
 
-        # Transition to stage (use aliases for MLflow 3.x compatibility)
+        # Transition to stage (use aliases for MLflow 3.x, fallback to stages for older)
         if stage:
-            self.client.set_model_version_alias(
-                name=model_name,
-                version=version,
-                alias=stage,
-            )
+            try:
+                self.client.set_model_version_alias(
+                    name=model_name,
+                    version=version,
+                    alias=stage,
+                )
+            except AttributeError:
+                self.client.transition_model_version_stage(
+                    name=model_name,
+                    version=version,
+                    stage=stage,
+                    archive_existing_versions=True,
+                )
 
         # Update description with metrics
         if metrics:
@@ -194,14 +198,16 @@ class ModelRegistry:
         rows = []
         for m in models:
             for v in m.latest_versions:
-                rows.append({
-                    "model_name": m.name,
-                    "version": v.version,
-                    "aliases": list(v.aliases) if hasattr(v, "aliases") and v.aliases else [],
-                    "stage": v.current_stage if hasattr(v, "current_stage") else "",
-                    "run_id": v.run_id,
-                    "created_at": datetime.fromtimestamp(v.creation_timestamp / 1000).isoformat(),
-                })
+                rows.append(
+                    {
+                        "model_name": m.name,
+                        "version": v.version,
+                        "aliases": list(v.aliases) if hasattr(v, "aliases") and v.aliases else [],
+                        "stage": v.current_stage if hasattr(v, "current_stage") else "",
+                        "run_id": v.run_id,
+                        "created_at": datetime.fromtimestamp(v.creation_timestamp / 1000).isoformat(),
+                    }
+                )
         return pd.DataFrame(rows)
 
     def compare_versions(self, model_name: str, version_a: int, version_b: int) -> dict:
@@ -228,11 +234,19 @@ class ModelRegistry:
 
     def transition_stage(self, model_name: str, version: int, stage: str) -> dict:
         """Transition a model version to a new stage (via alias in MLflow 3.x)."""
-        self.client.set_model_version_alias(
-            name=model_name,
-            version=str(version),
-            alias=stage,
-        )
+        try:
+            self.client.set_model_version_alias(
+                name=model_name,
+                version=str(version),
+                alias=stage,
+            )
+        except AttributeError:
+            self.client.transition_model_version_stage(
+                name=model_name,
+                version=str(version),
+                stage=stage,
+                archive_existing_versions=True,
+            )
         logger.info(f"Transitioned {model_name} v{version} -> {stage}")
         return {"model_name": model_name, "version": version, "new_stage": stage}
 

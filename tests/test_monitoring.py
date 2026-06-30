@@ -3,8 +3,6 @@ Test Monitoring & Alerting
 Validates metrics collection and alert management.
 """
 
-import pytest
-import numpy as np
 import sys
 import os
 

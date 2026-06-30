@@ -3,7 +3,6 @@ Test Drift Detection
 Validates PSI calculation, feature drift, target drift, and prediction drift.
 """
 
-import pytest
 import numpy as np
 import pandas as pd
 import sys

@@ -2,7 +2,7 @@
 # ML Lifecycle Management
 
 # MLflow for model registry and experiment tracking
-mlflow>=2.20
+mlflow>=2.20,<4.0
 
 # Drift detection
 evidently>=0.6.0

@@ -7,9 +7,8 @@ Uses Prefect for orchestration with audit trail and notification hooks.
 import pandas as pd
 import numpy as np
 from datetime import datetime
-from typing import Optional, Callable, Dict
+from typing import Callable, Dict
 from loguru import logger
-from pathlib import Path
 import json
 import traceback
 
@@ -118,53 +117,55 @@ class RetrainPipeline:
         try:
             # Step 1: Drift detection
             logger.info("Step 1: Drift detection")
-            drift_report = self.drift_detector.detect_feature_drift(
-                reference_data, current_data
-            )
+            drift_report = self.drift_detector.detect_feature_drift(reference_data, current_data)
 
             # Check target/prediction drift if provided
             if reference_targets is not None and current_targets is not None:
-                target_drift = self.drift_detector.detect_target_drift(
-                    reference_targets, current_targets
-                )
+                target_drift = self.drift_detector.detect_target_drift(reference_targets, current_targets)
                 drift_report["target_drift"] = target_drift
 
             if reference_predictions is not None and current_predictions is not None:
-                pred_drift = self.drift_detector.detect_prediction_drift(
-                    reference_predictions, current_predictions
-                )
+                pred_drift = self.drift_detector.detect_prediction_drift(reference_predictions, current_predictions)
                 drift_report["prediction_drift"] = pred_drift
 
-            result["steps"].append({
-                "step": "drift_detection",
-                "status": "completed",
-                "drift_detected": drift_report["drift_detected"],
-                "drifted_features": drift_report["drifted_features"],
-            })
+            result["steps"].append(
+                {
+                    "step": "drift_detection",
+                    "status": "completed",
+                    "drift_detected": drift_report["drift_detected"],
+                    "drifted_features": drift_report["drifted_features"],
+                }
+            )
 
             # Step 2: Evaluate trigger
             logger.info("Step 2: Evaluating retrain trigger")
             trigger_decision = self.trigger.should_retrain(
                 drift_report,
-                current_performance=baseline_performance and {k: v - 0.1 for k, v in baseline_performance.items()} or {},
+                current_performance=baseline_performance
+                and {k: v - 0.1 for k, v in baseline_performance.items()}
+                or {},
                 baseline_performance=baseline_performance or {},
             )
-            result["steps"].append({
-                "step": "trigger_evaluation",
-                "status": "completed",
-                "should_retrain": trigger_decision["should_retrain"],
-                "reasons": trigger_decision["reasons"],
-            })
+            result["steps"].append(
+                {
+                    "step": "trigger_evaluation",
+                    "status": "completed",
+                    "should_retrain": trigger_decision["should_retrain"],
+                    "reasons": trigger_decision["reasons"],
+                }
+            )
 
             # Step 3: Retrain (or skip)
             if not trigger_decision["should_retrain"] and not (auto_deploy or settings.retrain_auto):
                 logger.info("No retraining needed. Skipping.")
                 result["status"] = "skipped"
-                result["steps"].append({
-                    "step": "retrain",
-                    "status": "skipped",
-                    "reason": "No triggers met",
-                })
+                result["steps"].append(
+                    {
+                        "step": "retrain",
+                        "status": "skipped",
+                        "reason": "No triggers met",
+                    }
+                )
             else:
                 logger.info("Step 3: Retraining model")
                 # Combine reference + current for retraining
@@ -174,11 +175,13 @@ class RetrainPipeline:
                 if n < settings.retrain_min_samples:
                     logger.warning(f"Insufficient samples for retrain: {n} < {settings.retrain_min_samples}")
                     result["status"] = "skipped"
-                    result["steps"].append({
-                        "step": "retrain",
-                        "status": "skipped",
-                        "reason": f"Insufficient samples: {n} < {settings.retrain_min_samples}",
-                    })
+                    result["steps"].append(
+                        {
+                            "step": "retrain",
+                            "status": "skipped",
+                            "reason": f"Insufficient samples: {n} < {settings.retrain_min_samples}",
+                        }
+                    )
                 else:
                     # Split
                     split_idx = int(n * 0.8)
@@ -188,12 +191,14 @@ class RetrainPipeline:
                     # Call user-provided training function
                     model, metrics, params = train_fn(train_data, val_data)
 
-                    result["steps"].append({
-                        "step": "retrain",
-                        "status": "completed",
-                        "metrics": metrics,
-                        "params": params,
-                    })
+                    result["steps"].append(
+                        {
+                            "step": "retrain",
+                            "status": "completed",
+                            "metrics": metrics,
+                            "params": params,
+                        }
+                    )
 
                     # Step 4: Register new model
                     logger.info("Step 4: Registering new model version")
@@ -211,29 +216,35 @@ class RetrainPipeline:
                         stage="Staging",
                         metrics=metrics,
                     )
-                    result["steps"].append({
-                        "step": "register",
-                        "status": "completed",
-                        "version": reg_info["version"],
-                        "stage": "Staging",
-                    })
+                    result["steps"].append(
+                        {
+                            "step": "register",
+                            "status": "completed",
+                            "version": reg_info["version"],
+                            "stage": "Staging",
+                        }
+                    )
 
                     # Step 5: Auto-deploy if enabled
                     deploy = auto_deploy if auto_deploy is not None else settings.retrain_auto
                     if deploy:
                         logger.info("Step 5: Auto-deploying to Production")
                         self.registry.transition_stage(model_name, int(reg_info["version"]), "Production")
-                        result["steps"].append({
-                            "step": "deploy",
-                            "status": "completed",
-                            "stage": "Production",
-                        })
+                        result["steps"].append(
+                            {
+                                "step": "deploy",
+                                "status": "completed",
+                                "stage": "Production",
+                            }
+                        )
                     else:
-                        result["steps"].append({
-                            "step": "deploy",
-                            "status": "skipped",
-                            "reason": "Auto-deploy disabled",
-                        })
+                        result["steps"].append(
+                            {
+                                "step": "deploy",
+                                "status": "skipped",
+                                "reason": "Auto-deploy disabled",
+                            }
+                        )
 
                     result["status"] = "completed"
                     result["new_version"] = reg_info["version"]
@@ -243,11 +254,13 @@ class RetrainPipeline:
             logger.error(f"Pipeline failed: {e}\n{traceback.format_exc()}")
             result["status"] = "failed"
             result["error"] = str(e)
-            result["steps"].append({
-                "step": "error",
-                "status": "failed",
-                "error": str(e),
-            })
+            result["steps"].append(
+                {
+                    "step": "error",
+                    "status": "failed",
+                    "error": str(e),
+                }
+            )
 
         # Finalize
         pipeline_end = datetime.now()

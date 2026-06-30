@@ -7,8 +7,7 @@ Generates reports, triggers alerts, and feeds into retraining pipeline.
 import pandas as pd
 import numpy as np
 from datetime import datetime
-from pathlib import Path
-from typing import Optional, List, Dict
+from typing import List, Dict
 from loguru import logger
 import json
 
@@ -139,7 +138,9 @@ class DriftDetector:
         results["report_path"] = str(report_path)
 
         if results["drift_detected"]:
-            logger.warning(f"Drift detected in {len(results['drifted_features'])} features: {results['drifted_features']}")
+            logger.warning(
+                f"Drift detected in {len(results['drifted_features'])} features: {results['drifted_features']}"
+            )
         else:
             logger.info("No drift detected across all features")
 

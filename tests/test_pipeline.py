@@ -3,9 +3,6 @@ Test Pipeline Orchestration
 Validates retraining trigger logic and pipeline execution.
 """
 
-import pytest
-import numpy as np
-import pandas as pd
 import sys
 import os
 
@@ -64,6 +61,7 @@ class TestPipelineExecution:
     def test_pipeline_runs(self):
         """Test that the pipeline can execute end-to-end."""
         from src.pipeline.retrain_pipeline import RetrainPipeline
+
         pipeline = RetrainPipeline()
 
         ref_data = generate_readmission_data(n_samples=2000, drift=False)
@@ -87,6 +85,7 @@ class TestPipelineExecution:
     def test_pipeline_history_saved(self):
         """Test that pipeline execution is saved to disk."""
         from src.pipeline.retrain_pipeline import RetrainPipeline
+
         pipeline = RetrainPipeline()
 
         ref_data = generate_readmission_data(n_samples=1000, drift=False)

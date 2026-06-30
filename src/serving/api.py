@@ -10,8 +10,6 @@ from pydantic import BaseModel, Field
 from typing import Optional, List, Dict, Any
 from datetime import datetime
 import pandas as pd
-import numpy as np
-import json
 from loguru import logger
 from prometheus_fastapi_instrumentator import Instrumentator
 
@@ -21,6 +19,7 @@ from src.drift.drift_detector import DriftDetector
 
 
 # --- Request/Response Models ---
+
 
 class PredictionRequest(BaseModel):
     model_name: str = Field(..., description="Registered model name")
@@ -87,6 +86,7 @@ Instrumentator(
 
 # --- Endpoints ---
 
+
 @app.get("/health", response_model=HealthResponse)
 async def health_check():
     """Check platform health."""
@@ -114,10 +114,13 @@ async def predict(request: PredictionRequest):
         registry = ModelRegistry()
         model_info = registry.get_latest_model(request.model_name, stage=request.model_stage)
         if model_info is None:
-            raise HTTPException(status_code=404, detail=f"Model '{request.model_name}' not found in stage '{request.model_stage}'")
+            raise HTTPException(
+                status_code=404, detail=f"Model '{request.model_name}' not found in stage '{request.model_stage}'"
+            )
 
         # Load model from MLflow
         import mlflow
+
         model_uri = model_info["model_uri"]
         model = mlflow.pyfunc.load_model(model_uri)
 
@@ -174,7 +177,8 @@ async def detect_drift(request: DriftRequest):
     ref_df = pd.DataFrame(request.reference_data)
     cur_df = pd.DataFrame(request.current_data)
     result = detector.detect_feature_drift(
-        ref_df, cur_df,
+        ref_df,
+        cur_df,
         numerical_features=request.numerical_features,
         categorical_features=request.categorical_features,
     )
