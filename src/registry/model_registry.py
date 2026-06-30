@@ -184,9 +184,11 @@ class ModelRegistry:
         return {
             "model_name": model_name,
             "version": latest.version,
-            "stage": latest.current_stage,
+            "stage": latest.current_stage if hasattr(latest, "current_stage") else stage,
             "run_id": latest.run_id,
-            "model_uri": f"models:/{model_name}/{stage}",
+            "model_uri": f"models:/{model_name}@{stage}"
+            if hasattr(latest, "aliases")
+            else f"models:/{model_name}/{stage}",
             "metrics": run.data.metrics,
             "params": run.data.params,
             "registered_at": latest.creation_timestamp,

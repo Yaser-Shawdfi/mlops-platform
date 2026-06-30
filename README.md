@@ -149,16 +149,74 @@ python -m pytest tests/ -v --cov=src --cov-report=term-missing
 
 ## API Endpoints
 
-| Method | Endpoint | Description |
-|---|---|---|
-| GET | `/health` | Platform health check (MLflow connection, model count) |
-| POST | `/predict` | Serve predictions from a registered model |
-| GET | `/models` | List all registered models with versions |
-| GET | `/models/{name}` | Get info about a specific model |
-| GET | `/models/{name}/versions` | List all versions of a model |
-| POST | `/models/{name}/transition` | Transition model to a new stage |
-| POST | `/drift/detect` | Detect drift between reference and current data |
-| GET | `/metrics` | Prometheus metrics endpoint |
+| Method | Endpoint | Auth | Rate Limit | Description |
+|---|---|---|---|---|
+| GET | `/health` | Public | 100/min | Platform health check |
+| POST | `/predict` | API Key | 30/min | Serve predictions from a registered model |
+| GET | `/models` | Public | 100/min | List all registered models |
+| GET | `/models/{name}` | Public | 100/min | Get info about a specific model |
+| GET | `/models/{name}/versions` | Public | 100/min | List all versions of a model |
+| POST | `/models/{name}/transition` | API Key | 100/min | Transition model to a new stage |
+| POST | `/drift/detect` | API Key | 100/min | Detect drift between datasets |
+| GET | `/metrics` | Public | 100/min | Prometheus metrics endpoint |
+| GET | `/docs` | Public | - | Swagger UI |
+
+### Authentication
+
+Set `MLOPS_API_KEY` environment variable to enable API key authentication. When set, protected endpoints require an `X-API-Key` header.
+
+```bash
+# Enable auth
+export MLOPS_API_KEY="your-secret-key"
+
+# Call protected endpoint
+curl -X POST http://localhost:8000/predict \
+  -H "X-API-Key: your-secret-key" \
+  -H "Content-Type: application/json" \
+  -d '{"model_name": "readmission_predictor", "data": [{"age": 65}]}'
+```
+
+When `MLOPS_API_KEY` is empty (default), auth is disabled (development mode).
+
+### API Examples
+
+```bash
+# Health check
+curl http://localhost:8000/health
+
+# List models
+curl http://localhost:8000/models
+
+# Get model info
+curl http://localhost:8000/models/readmission_predictor
+
+# Get model versions
+curl http://localhost:8000/models/readmission_predictor/versions
+
+# Predict (requires registered model)
+curl -X POST http://localhost:8000/predict \
+  -H "Content-Type: application/json" \
+  -d '{
+    "model_name": "readmission_predictor",
+    "data": [{"age": 65, "length_of_stay": 5, "num_diagnoses": 3}],
+    "model_stage": "Production"
+  }'
+
+# Detect drift
+curl -X POST http://localhost:8000/drift/detect \
+  -H "Content-Type: application/json" \
+  -d '{
+    "reference_data": [{"age": 50}, {"age": 55}, {"age": 45}, {"age": 60}],
+    "current_data": [{"age": 70}, {"age": 75}, {"age": 65}, {"age": 80}],
+    "numerical_features": ["age"]
+  }'
+
+# Transition model stage
+curl -X POST "http://localhost:8000/models/readmission_predictor/transition?version=2&stage=Production"
+
+# Prometheus metrics
+curl http://localhost:8000/metrics
+```
 
 ## Drift Detection
 

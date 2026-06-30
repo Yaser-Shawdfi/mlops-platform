@@ -139,11 +139,14 @@ class RetrainPipeline:
 
             # Step 2: Evaluate trigger
             logger.info("Step 2: Evaluating retrain trigger")
+            # Estimate current performance: simulate slight degradation from baseline
+            if baseline_performance:
+                current_performance = {k: max(v - 0.05, 0.0) for k, v in baseline_performance.items()}
+            else:
+                current_performance = {}
             trigger_decision = self.trigger.should_retrain(
                 drift_report,
-                current_performance=baseline_performance
-                and {k: v - 0.1 for k, v in baseline_performance.items()}
-                or {},
+                current_performance=current_performance,
                 baseline_performance=baseline_performance or {},
             )
             result["steps"].append(
